@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 from model import SpeedCNN
 
 SEED        = 42
-VAL_SESSION = 7   # session_20260818_001601 — held-out day, different outfit (adidas shorts)
+VAL_SESSION = 7   # held-out session: a different day + outfit (cross-day validation)
 
 
 def load_cache(path):

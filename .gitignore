@@ -1,5 +1,6 @@
 # ── datasets, caches, models, media (large binaries — not versioned) ─────────
 dataset/
+recordings/
 *.npz
 *.npy
 models/
@@ -12,6 +13,13 @@ models/
 *.jpg
 *.jpeg
 *.png
+
+# Documentation/article images ARE versioned (place them under docs/images/ or
+# a part's images/ folder). These negations override the media globs above.
+!docs/images/
+!docs/images/**
+!**/images/
+!**/images/**
 
 # ── python ───────────────────────────────────────────────────────────────────
 __pycache__/
