@@ -2,8 +2,11 @@
 
 This folder is the training dataset for the AI Treadmill speed model, in the
 exact format the documented [`1-data-acquisition/`](../1-data-acquisition/)
-pipeline expects. It is self-contained: anyone can rebuild the training cache
-from it with the documented `preprocess.py` and get the same result.
+pipeline expects. It ships only the small reproducibility records
+(`speed_manual.jsonl` + `manifest.json` per session); once the externally hosted
+`side.mp4` videos are unpacked into it, the folder is self-contained — anyone can
+rebuild the training cache with the documented `preprocess.py` and get the same
+result.
 
 > **Large files live outside git.** Only the small text records
 > (`speed_manual.jsonl`, `manifest.json`) and this README are versioned here. The

@@ -52,8 +52,11 @@ The training data and the trained model are too large for git, so they are hoste
 externally. Download and unpack them at the repo root:
 
 ```bash
-# Reproducible dataset — 10 sessions + a prebuilt training cache (~5 GB)
-curl -L -o dataset_repro.tar.gz "<DATASET_URL>"   # ← fill in the hosting link
+# Reproducible dataset — 10 sessions + a prebuilt training cache (~5 GB).
+# Hosted on Google Drive; use gdown (plain curl hits Drive's scan interstitial
+# and saves an HTML page instead of the tarball for files this large).
+pip install gdown
+gdown 1V_-AhkDP4gH7HobBH-CnSRrkIpcf5Evp -O dataset_repro.tar.gz
 tar -xzf dataset_repro.tar.gz                      # → dataset_repro/
 
 # Trained model (~44 MB ONNX) — skip if you plan to train from scratch
@@ -61,10 +64,11 @@ mkdir -p models
 curl -L -o models/speed_cnn.onnx "<MODEL_URL>"     # ← fill in the hosting link
 ```
 
-> `<DATASET_URL>` and `<MODEL_URL>` are placeholders — replace them with the real
-> download links once the artifacts are uploaded (e.g. a GitHub Release asset, a
-> Hugging Face dataset, or Zenodo). See [`dataset_repro/README.md`](dataset_repro/README.md)
-> for the dataset format and how it was built.
+> The dataset link is live. `<MODEL_URL>` is still a placeholder — replace it with
+> the real download link once the model is uploaded (e.g. a GitHub Release asset,
+> a Hugging Face model, or the same Drive). See
+> [`dataset_repro/README.md`](dataset_repro/README.md) for the dataset format and
+> how it was built.
 
 Prefer to build everything yourself? Skip the model download and follow the
 train-from-scratch path below — it reproduces `models/speed_cnn.onnx` from the
@@ -91,20 +95,28 @@ runs on a separate GPU workstation.
 # 1. SSH into the board (use your board's address / user)
 ssh <user>@<board-ip>
 
-# 2. System packages
+# 2. Get the code on the board
+git clone https://github.com/munoz0raul/treadmill.git
+cd treadmill
+git checkout arduino-project-hub
+
+# 3. System packages
 sudo apt update
 sudo apt install -y python3-venv python3-opencv bluez v4l-utils
 
-# 3. Python deps in a venv
+# 4. Python deps in a venv
 python3 -m venv ~/venv && source ~/venv/bin/activate
 pip install -r requirements-board.txt
 
-# 4. Find the camera device node
+# 5. Find the camera device node
 v4l2-ctl --list-devices        # note the /dev/videoN for your USB webcam
 
-# 5. Put the trained model where the apps expect it
+# 6. Put the trained model where the apps expect it
 mkdir -p ~/models
-cp models/speed_cnn.onnx ~/models/     # (or download it straight onto the board)
+# either download it straight onto the board …
+curl -L -o ~/models/speed_cnn.onnx "<MODEL_URL>"
+# … or copy it from the workstation where you trained/exported it:
+#   scp models/speed_cnn.onnx <user>@<board-ip>:~/models/
 ```
 
 BlueZ must be running for the FTMS peripheral (`sudo systemctl status bluetooth`).
@@ -147,8 +159,9 @@ python3 3-bluetooth-ftms/game_server.py --camera /dev/video0 --port 8090 \
 
 - **Dataset:** 10 sessions → cache `X (8679, 3, 8, 112, 112)` uint8, labels
   0.0–10.0 km/h (balanced to ≤ 800 clips per 0.5 km/h bin).
-- **Training:** `mc3_18` 3D-CNN (~11.7 M params) fine-tuned for ~20 epochs; best
-  validation **MAE ≈ 0.15 km/h** on a fully held-out session.
+- **Training:** `mc3_18` 3D-CNN (~11.7 M params) fine-tuned for 30 epochs
+  (5 warmup + 25 fine-tune); best validation **MAE ≈ 0.15 km/h** on a fully
+  held-out session.
 - **Model:** a single `speed_cnn.onnx`, **≈ 44 MB**, CPU inference on the board.
 - **Live:** speed updates a few times a second; BLE notifies at **≈ 2 Hz**.
 

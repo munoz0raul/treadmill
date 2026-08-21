@@ -5,7 +5,7 @@
 > **Media placeholders** — replace the `![...]()` lines and the video link below
 > with the real photos and demo clip. Suggested shots are listed in Part 4.
 
-![Hero shot: the treadmill, the camera, and the live speed on screen](docs/images/hero.jpg)
+![Hero shot: the treadmill, the camera, and the live speed on screen](images/hero.jpg)
 
 ## What this project does
 
@@ -63,7 +63,7 @@ speed on the treadmill, tap the matching button, and walk. Every tap is saved
 with a timestamp next to the raw video. The dataset then assumes the value you
 picked is the true belt speed until you change it.
 
-![The acquisition web UI: camera preview and speed buttons](docs/images/acquire-ui.jpg)
+![The acquisition web UI: camera preview and speed buttons](images/acquire-ui.jpg)
 
 We recorded several sessions across different days, with different people and
 outfits, holding each speed for about 30 seconds before stepping up — plus one
@@ -82,7 +82,7 @@ With a trained model in hand, `live_speed.py` puts it to work. It shows the came
 on one side of the page and a big speed number on the other, updated several times
 a second as you walk.
 
-![Live inference: camera on the left, AI speed on the right](docs/images/live-ui.jpg)
+![Live inference: camera on the left, AI speed on the right](images/live-ui.jpg)
 
 Under the hood, the model looks at that rolling 1-second clip and predicts a
 speed. Two small touches keep it honest: a **motion gate** that reports 0 km/h
@@ -101,7 +101,7 @@ The board advertises itself as **"AI Treadmill"** and streams the AI speed the w
 a real smart treadmill would. `game_server.py` is Part 2's app plus this Bluetooth
 layer and a small connection panel in the UI (Advertising → Linked → Game active).
 
-![The Bluetooth panel connecting to a game](docs/images/ble-panel.jpg)
+![The Bluetooth panel connecting to a game](images/ble-panel.jpg)
 
 Getting a real game to pair reliably took some care — for example, running games
 expect the treadmill to advertise its supported speed range, and will silently
@@ -118,6 +118,10 @@ walking on the treadmill while a game responds. *(Coming soon.)*
 ## Try it yourself
 
 Everything is on GitHub, split into the four folders above with a README in each.
+The **[root README](../README.md)** is the full setup guide — where to get the
+dataset and model, how to install dependencies, how to set up the Arduino Ventuno
+Q, and the end-to-end reproduction path (train → export → run → pair). The
+commands below assume you've already followed it.
 
 ```bash
 # See the AI speed live (needs a trained models/speed_cnn.onnx)
@@ -140,4 +144,4 @@ python3 3-bluetooth-ftms/game_server.py --cnn-model ~/models/speed_cnn.onnx
 
 ## License
 
-Released under the [Mozilla Public License 2.0](LICENSE).
+Released under the [Mozilla Public License 2.0](../LICENSE).

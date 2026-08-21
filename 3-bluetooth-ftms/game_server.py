@@ -164,8 +164,9 @@ class CnnSpeedEstimator:
             mean_mov = float(np.abs(np.diff(clip, axis=2)).mean())
             with self._lock:
                 self._mean_mov = mean_mov
-            # Gate at 0.006 so a stopped belt reads 0.0, not ~1 km/h (the model
-            # never saw "stopped" in training and can't extrapolate to it).
+            # Gate at 0.006 so a stopped belt pins to 0.0 immediately. The
+            # training set includes stopped/empty-belt clips, but this cheap
+            # backstop avoids low-motion jitter and clears the rolling average.
             if mean_mov < 0.006:
                 with self._lock:
                     self._preds.clear()

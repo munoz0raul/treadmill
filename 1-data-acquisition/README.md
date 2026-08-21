@@ -125,8 +125,10 @@ between training and inference.
   **ONNX** file (opset 17) that the live app loads.
 
 ```bash
-python3 train.py       --cache dataset/cache_side.npz --out models/speed_cnn.pt
-python3 export_onnx.py --ckpt  models/speed_cnn.pt     --out models/speed_cnn.onnx
+# 5 warmup + 25 finetune epochs are the defaults; shown explicitly for the record
+python3 train.py       --cache dataset_repro/cache_side.npz --out models/speed_cnn.pt \
+                       --warmup 5 --finetune 25
+python3 export_onnx.py --ckpt  models/speed_cnn.pt          --out models/speed_cnn.onnx
 ```
 
 The resulting `speed_cnn.onnx` is what Part 2 (live inference) and Part 3
@@ -153,6 +155,7 @@ Samples per speed (km/h):
 (Half-step bins are collapsed to whole km/h above; the per-0.5 balancing cap is
 800 clips/bin, so the well-covered speeds sit near that ceiling.)
 
-Training `mc3_18` (~11.7 M params) for ~20 epochs with one session fully held out
-for validation gives a best validation **MAE ≈ 0.15 km/h**. The exported
-`speed_cnn.onnx` is **≈ 44 MB**.
+Training `mc3_18` (~11.7 M params) with the command above (5 warmup + 25
+fine-tune epochs, one session fully held out for validation) gives a best
+validation **MAE ≈ 0.15 km/h** — `train.py` keeps the checkpoint from the
+best-scoring epoch. The exported `speed_cnn.onnx` is **≈ 44 MB**.
