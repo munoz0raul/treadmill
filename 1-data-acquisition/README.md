@@ -80,10 +80,36 @@ ran at 24 or 30 fps. As a safeguard, `preprocess.py` reports each session's fps
 and, with `--normalize-fps`, re-encodes any outlier to the dataset's dominant fps
 (via `ffmpeg`) so the whole dataset shares one solid, consistent frame rate.
 
+## Camera placement
+
+The model reads gait and belt motion from a **side view**, so placement matters
+more than camera quality:
+
+- **Side of the treadmill**, roughly perpendicular to the belt, at about waist
+  height. The **whole body and the belt** should be in frame.
+- **1280×720** is what we recorded and what the crop constants assume. A plain USB
+  webcam is fine.
+- Steady framing (a tripod or shelf). The belt should occupy the central band of
+  the frame, not the far edge.
+
+`preprocess.py` and the live apps take a **central horizontal crop** of the
+1280-wide frame to drop room clutter and keep the walker:
+
+```
+CROP_X0 = 240   # keep x ∈ [240, 1040) of a 1280-wide frame → an 800×720 band
+CROP_X1 = 1040  # (full body incl. arms, no sofa/shelf on the sides)
+```
+
+If your camera frames the scene differently — or isn't 1280 wide — adjust
+`CROP_X0`/`CROP_X1` in `preprocess.py` so the crop still contains the walker and
+the belt, and set the matching `CNN_CROP_X0`/`CNN_CROP_X1` in the live apps
+(`live_speed.py`, `game_server.py`) to the same values. The crop must be identical
+between training and inference.
+
+![The recording rig: side camera framing the walker and the belt](../docs/images/rig.jpg)
+
 ## How we trained (high level)
 
-- **Camera position:** side view, the whole body in frame. The central crop keeps
-  the walker and the belt and drops the sofa/shelf on the sides.
 - **Protocol:** set each speed on the panel, hold it for **~30 seconds**, then
   step up. We walked **0 → 8 km/h in 0.5 km/h steps** (17 steps, ~8–9 minutes per
   session).
@@ -105,3 +131,28 @@ python3 export_onnx.py --ckpt  models/speed_cnn.pt     --out models/speed_cnn.on
 
 The resulting `speed_cnn.onnx` is what Part 2 (live inference) and Part 3
 (Bluetooth) load to read speed from the camera.
+
+## What to expect
+
+Building the cache from the 10 sessions in [`dataset_repro/`](../dataset_repro/)
+reproduces:
+
+```
+X shape: (8679, 3, 8, 112, 112)  dtype: uint8
+y range: 0.0 → 10.0 km/h
+
+Samples per speed (km/h):
+   0 km/h:   802      5 km/h:   527
+   1 km/h:   754      6 km/h:  1420
+   2 km/h:  1486      7 km/h:   452
+   3 km/h:   506      8 km/h:   957
+   4 km/h:  1472      9 km/h:   132
+                     10 km/h:   171
+```
+
+(Half-step bins are collapsed to whole km/h above; the per-0.5 balancing cap is
+800 clips/bin, so the well-covered speeds sit near that ceiling.)
+
+Training `mc3_18` (~11.7 M params) for ~20 epochs with one session fully held out
+for validation gives a best validation **MAE ≈ 0.15 km/h**. The exported
+`speed_cnn.onnx` is **≈ 44 MB**.

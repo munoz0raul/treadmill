@@ -1,0 +1,3 @@
+# Optional — the ftms_probe.py BLE central used to verify pairing.
+# bleak is only needed to run the probe as a scanner/central.
+bleak

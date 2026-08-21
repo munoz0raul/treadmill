@@ -36,8 +36,10 @@ on regardless of the camera's (variable) frame rate.
 Two small touches make it behave well live:
 
 - **Motion gate** — if the clip barely changes frame-to-frame, the belt is
-  stopped and we report `0.0` directly (the model never saw a stopped belt and
-  can't extrapolate to it).
+  stopped and we report `0.0` directly. The training set *does* include
+  stopped/empty-belt clips, so the model has a real "0 km/h" class; the gate is a
+  cheap robustness backstop that pins a dead-still belt to zero without waiting on
+  the rolling average.
 - **Rolling average** — predictions are smoothed over a short window so the
   readout doesn't jitter.
 

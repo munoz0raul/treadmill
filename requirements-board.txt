@@ -1,0 +1,6 @@
+# Parts 2 & 3 — live inference + Bluetooth, run on the Arduino Ventuno Q.
+# CPU-only ONNX Runtime is enough; bless drives the BLE peripheral.
+numpy
+opencv-python
+onnxruntime
+bless

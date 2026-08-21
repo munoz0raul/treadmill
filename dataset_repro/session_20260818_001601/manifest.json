@@ -1,0 +1,38 @@
+{
+  "session": "session_20260818_001601",
+  "start_ts": 1787012161.7001,
+  "end_ts": 1787012680.0441,
+  "duration_s": 518.34,
+  "camera": {
+    "label": "side",
+    "video_frames": 15550,
+    "video_size": [
+      1280,
+      720
+    ],
+    "video_fps": 30.0
+  },
+  "label_file": "speed_manual.jsonl",
+  "label_source": "screen setpoint (0.5 km/h steps)",
+  "label_rows": 16,
+  "speeds_kmh": [
+    0.0,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    6.5,
+    7.0,
+    7.5,
+    8.0
+  ],
+  "clock": "time.time()",
+  "note": "side.mp4 re-encoded to an honest constant fps from the real per-frame timestamps; speed_manual.jsonl is the screen speed (plateau-snapped from the belt trace), not the Bluetooth reading"
+}

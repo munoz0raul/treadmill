@@ -2,25 +2,25 @@
 """
 ftms_peripheral.py — a vision-powered *virtual* FTMS treadmill.
 
-This is the mirror image of `mac_ble_server.py`. There, the Mac was a BLE
-**central** that read the treadmill's own FTMS speed. Here the edge board is the
-BLE **peripheral**: it impersonates a smart treadmill, advertising the standard
-Fitness Machine Service (FTMS, 0x1826) so any fitness *game* (Zwift, Rouvy, the
-ftmsemu verifier, a phone app, …) connects to it as a central and consumes a
-speed we feed it — the speed the camera + CNN read off a dumb, Bluetooth-less
-treadmill.
+This is the mirror image of a BLE **central** that reads a real treadmill's own
+FTMS speed. Here the edge board is the BLE **peripheral**: it impersonates a smart
+treadmill, advertising the standard Fitness Machine Service (FTMS, 0x1826) so any
+fitness *game* (Zwift, Rouvy, the ftmsemu verifier, a phone app, …) connects to it
+as a central and consumes a speed we feed it — the speed the camera + CNN read off
+a dumb, Bluetooth-less treadmill.
 
     dumb treadmill ──▶ camera+CNN ──▶ speed_provider() ──▶ FtmsTreadmill ──BLE──▶ game
 
 GATT layout (all under FTMS 0x1826):
   0x2ACD  Treadmill Data       notify + read   ← the speed stream we push @2Hz
   0x2ACC  Fitness Machine Feature   read        ← feature bitfield (we expose none)
+  0x2AD4  Supported Speed Range     read        ← min/max/step; games require it
   0x2AD9  Fitness Machine Control Point  write+indicate ← handshake stub
   0x2ADA  Fitness Machine Status    notify       ← handshake stub
 
-Treadmill Data packet is byte-compatible with this repo's own decoder in
-`mac_ble_server.py` (`speed = int.from_bytes(raw[2:4],"little")/100.0`): flags
-uint16 LE + instantaneous speed uint16 LE in 0.01 km/h units.
+Treadmill Data packet uses the standard FTMS byte layout — flags uint16 LE +
+instantaneous speed uint16 LE in 0.01 km/h units — so a central that decodes it
+as `speed = int.from_bytes(raw[2:4], "little") / 100.0` round-trips losslessly.
 
 bless is asyncio-based; this class owns a private event loop in a daemon thread,
 so the (threaded) HTTP server and camera can drive it with plain method calls.
@@ -46,7 +46,7 @@ try:
 except ImportError:
     _BLESS_AVAILABLE = False
 
-# ── FTMS UUIDs (copied verbatim from mac_ble_server.py so the two sides agree) ──
+# ── FTMS UUIDs (must match what the central/game expects, per the FTMS spec) ──
 FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
 UUID_DATA    = "00002acd-0000-1000-8000-00805f9b34fb"   # Treadmill Data (notify)
 UUID_FEATURE = "00002acc-0000-1000-8000-00805f9b34fb"   # Fitness Machine Feature
@@ -97,8 +97,8 @@ class FtmsTreadmill:
         """Build a Treadmill Data (0x2ACD) payload.
 
         flags=0x0000 → bit0 ("More Data") clear means Instantaneous Speed is the
-        first field: uint16 LE in 0.01 km/h units. This is exactly what
-        mac_ble_server.py decodes on the way in, so a round-trip is lossless.
+        first field: uint16 LE in 0.01 km/h units. This is exactly what an FTMS
+        central decodes on the way in, so a round-trip is lossless.
         """
         kmh = max(0.0, float(kmh))
         return struct.pack("<HH", 0x0000, round(kmh * 100))

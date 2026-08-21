@@ -1,7 +1,7 @@
 # AI Treadmill — a vision-powered virtual smart treadmill
 
 Turn a **dumb treadmill** (no Bluetooth, no sensors) into a **smart one** using
-just a camera and a small AI model running on an **Arduino UNO Q**.
+just a camera and a small AI model running on an **Arduino Ventuno Q**.
 
 A side camera watches the belt, a 3D convolutional neural network reads the speed
 straight from the video, and the board broadcasts that speed over Bluetooth as a
@@ -40,24 +40,117 @@ The full write-up for the Arduino Project Hub lives in
 
 ## Hardware
 
-- **Arduino UNO Q** (Qualcomm Dragonwing platform) — runs the model and the BLE
-  peripheral.
+- **Arduino Ventuno Q** — runs the model and the BLE peripheral. Built on the
+  **Qualcomm Dragonwing IQ8 (IQ-8275)**: 8-core Kryo CPU, Adreno 623 GPU, Hexagon
+  NPU, 16 GB LPDDR5, Wi-Fi 6 + Bluetooth 5.3, running Ubuntu/Debian.
 - A **USB webcam** (we used 1280×720 @ 30 fps).
 - A treadmill — any belt treadmill; **no Bluetooth or sensors required**.
 
-## Quick start
+## Get the dataset and model
+
+The training data and the trained model are too large for git, so they are hosted
+externally. Download and unpack them at the repo root:
 
 ```bash
-# Part 2 — see the AI speed live (needs a trained models/speed_cnn.onnx)
-python3 2-live-inference/live_speed.py --cnn-model ~/models/speed_cnn.onnx
+# Reproducible dataset — 10 sessions + a prebuilt training cache (~5 GB)
+curl -L -o dataset_repro.tar.gz "<DATASET_URL>"   # ← fill in the hosting link
+tar -xzf dataset_repro.tar.gz                      # → dataset_repro/
 
-# Part 3 — the full app, broadcasting over Bluetooth to a game
-python3 3-bluetooth-ftms/game_server.py --cnn-model ~/models/speed_cnn.onnx
+# Trained model (~44 MB ONNX) — skip if you plan to train from scratch
+mkdir -p models
+curl -L -o models/speed_cnn.onnx "<MODEL_URL>"     # ← fill in the hosting link
 ```
 
-Dependencies: Python 3, `opencv-python`, `numpy`, `onnxruntime`, and — for Part 3
-— [`bless`](https://github.com/kevincar/bless) (BLE peripheral). Training (Part 1)
-also needs `torch` and `torchvision`.
+> `<DATASET_URL>` and `<MODEL_URL>` are placeholders — replace them with the real
+> download links once the artifacts are uploaded (e.g. a GitHub Release asset, a
+> Hugging Face dataset, or Zenodo). See [`dataset_repro/README.md`](dataset_repro/README.md)
+> for the dataset format and how it was built.
+
+Prefer to build everything yourself? Skip the model download and follow the
+train-from-scratch path below — it reproduces `models/speed_cnn.onnx` from the
+sessions in `dataset_repro/`.
+
+## Install dependencies
+
+Use a virtual environment. Training and the board have separate requirement sets:
+
+```bash
+python3 -m venv venv && source venv/bin/activate
+
+pip install -r requirements-train.txt   # Part 1 — training (GPU workstation)
+pip install -r requirements-board.txt   # Parts 2 & 3 — live + Bluetooth (the board)
+pip install -r requirements-debug.txt   # optional — ftms_probe.py BLE central
+```
+
+## Set up the Arduino Ventuno Q
+
+The board runs Ubuntu/Debian. Parts 2 and 3 run **on the board**; Part 1 training
+runs on a separate GPU workstation.
+
+```bash
+# 1. SSH into the board (use your board's address / user)
+ssh <user>@<board-ip>
+
+# 2. System packages
+sudo apt update
+sudo apt install -y python3-venv python3-opencv bluez v4l-utils
+
+# 3. Python deps in a venv
+python3 -m venv ~/venv && source ~/venv/bin/activate
+pip install -r requirements-board.txt
+
+# 4. Find the camera device node
+v4l2-ctl --list-devices        # note the /dev/videoN for your USB webcam
+
+# 5. Put the trained model where the apps expect it
+mkdir -p ~/models
+cp models/speed_cnn.onnx ~/models/     # (or download it straight onto the board)
+```
+
+BlueZ must be running for the FTMS peripheral (`sudo systemctl status bluetooth`).
+
+## Reproduce it end to end
+
+```bash
+# ── On the GPU workstation (Part 1) ──────────────────────────────────────────
+# 1. Get the dataset (above) and install training deps
+pip install -r requirements-train.txt
+
+# 2. Build the training cache from the recorded sessions
+python3 1-data-acquisition/preprocess.py \
+    --sessions dataset_repro/session_* --out dataset_repro/cache_side.npz
+
+# 3. Fine-tune the model  (holds out one session for validation)
+python3 1-data-acquisition/train.py \
+    --cache dataset_repro/cache_side.npz --out models/speed_cnn.pt
+
+# 4. Export to ONNX
+python3 1-data-acquisition/export_onnx.py \
+    --ckpt models/speed_cnn.pt --out models/speed_cnn.onnx
+
+# ── On the Arduino Ventuno Q (Parts 2 & 3) ───────────────────────────────────
+# 5. Copy models/speed_cnn.onnx to the board's ~/models/ (see setup above)
+
+# 6. Part 2 — see the AI speed live on a web page
+python3 2-live-inference/live_speed.py --camera /dev/video0 --port 8090 \
+    --cnn-model ~/models/speed_cnn.onnx
+
+# 7. Part 3 — the full app: broadcast the speed over Bluetooth (FTMS)
+python3 3-bluetooth-ftms/game_server.py --camera /dev/video0 --port 8090 \
+    --cnn-model ~/models/speed_cnn.onnx
+
+# 8. Open http://<board-ip>:8090, press "Start broadcasting", then pair
+#    "AI Treadmill" inside Zwift / Rouvy (Run → Run Speed).
+```
+
+## What to expect
+
+- **Dataset:** 10 sessions → cache `X (8679, 3, 8, 112, 112)` uint8, labels
+  0.0–10.0 km/h (balanced to ≤ 800 clips per 0.5 km/h bin).
+- **Training:** `mc3_18` 3D-CNN (~11.7 M params) fine-tuned for ~20 epochs; best
+  validation **MAE ≈ 0.15 km/h** on a fully held-out session.
+- **Model:** a single `speed_cnn.onnx`, **≈ 44 MB**, CPU inference on the board.
+- **Live:** speed updates a few times a second; BLE notifies at **≈ 2 Hz**.
 
 ## License
 

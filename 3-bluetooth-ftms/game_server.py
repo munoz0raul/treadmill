@@ -11,11 +11,11 @@ game (Zwift, Rouvy, the ftmsemu verifier, a phone app) connects and moves with i
                      │
                      └──▶ web UI (:8090): live camera + AI speed + Bluetooth panel
 
-The CNN block below (constants + CnnSpeedEstimator) is copied VERBATIM from
-pose_server.py, which stays the source of truth. The one invariant that makes the
-model accurate live is time-based clip sampling: CLIP_SPAN_S=1.0 s here MUST match
-CLIP_SPAN_S in preprocess.py and CNN_CLIP_SPAN_S in pose_server.py. Do not change
-one without the others. (A shared module is a sensible later refactor.)
+The CNN block below (constants + CnnSpeedEstimator) is the same estimator used in
+Part 2's live_speed.py. The one invariant that makes the model accurate live is
+time-based clip sampling: CLIP_SPAN_S=1.0 s here MUST match CLIP_SPAN_S in
+preprocess.py and CNN_CLIP_SPAN_S in live_speed.py. Do not change one without the
+others. (A shared module is a sensible later refactor.)
 """
 
 import argparse
@@ -43,13 +43,13 @@ from ftms_peripheral import FtmsTreadmill
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-# ── CNN speed estimator config (mirrors pose_server.py) ─────────────────────────
+# ── CNN speed estimator config (mirrors live_speed.py) ──────────────────────────
 CNN_MODEL       = os.path.expanduser("~/models/speed_cnn.onnx")
 CNN_CLIP        = 112        # square resize target (matches preprocess.py)
 CNN_N_FRAMES    = 8          # frames per clip
 CNN_FRAME_STRIDE = 4         # legacy — kept only for set_fps() back-compat
 CNN_CLIP_SPAN_S = 1.0        # real-time span of one clip, in SECONDS. Must equal
-                             #   CLIP_SPAN_S in preprocess.py / pose_server.py.
+                             #   CLIP_SPAN_S in preprocess.py / live_speed.py.
 CNN_TRAIN_FPS   = 24.4       # legacy band-aid, UNUSED for span (span is time-based)
 CNN_CROP_X0     = 240        # central horizontal crop of a 1280-wide frame …
 CNN_CROP_X1     = 1040       # … keep x∈[240,1040) — drops clutter, keeps the body
@@ -77,7 +77,7 @@ class CnnSpeedEstimator:
     regardless of the (variable) camera rate. Inference runs in a background
     thread; add_frame() is cheap and non-blocking.
 
-    (Copied verbatim from pose_server.py — see the module docstring.)
+    (The same estimator as Part 2's live_speed.py — see the module docstring.)
     """
 
     def __init__(self, model_path=CNN_MODEL, n_frames=CNN_N_FRAMES,

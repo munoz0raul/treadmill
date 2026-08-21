@@ -1,6 +1,6 @@
 # AI Treadmill: teaching a camera to read a treadmill's speed
 
-*A vision-powered virtual smart treadmill on the Arduino UNO Q.*
+*A vision-powered virtual smart treadmill on the Arduino Ventuno Q.*
 
 > **Media placeholders** — replace the `![...]()` lines and the video link below
 > with the real photos and demo clip. Suggested shots are listed in Part 4.
@@ -14,7 +14,7 @@ it. No Bluetooth, no way to connect them to a running game like Zwift or Rouvy.
 The smart ones that do connect are expensive.
 
 This project makes a dumb treadmill act like a smart one — with nothing but a
-**camera** and a small **AI model** running on an **Arduino UNO Q**. A webcam
+**camera** and a small **AI model** running on an **Arduino Ventuno Q**. A webcam
 watches the belt from the side, a neural network reads the speed straight from
 the video, and the board broadcasts that speed over Bluetooth using the same
 standard a real smart treadmill uses. Open your favorite fitness game, and your
@@ -29,8 +29,10 @@ pointed at it and a bit of AI.
 
 ## Devices and components
 
-- **Arduino UNO Q** (Qualcomm Dragonwing platform) — the brain. It runs the AI
-  model and acts as the Bluetooth device.
+- **Arduino Ventuno Q** — the brain. Built on the **Qualcomm Dragonwing IQ8
+  (IQ-8275)** (8-core Kryo CPU, Adreno 623 GPU, Hexagon NPU, 16 GB LPDDR5, Wi-Fi 6
+  + Bluetooth 5.3, Ubuntu/Debian), it runs the AI model and acts as the Bluetooth
+  device.
 - **USB webcam** — a regular 720p webcam, placed to the side of the treadmill.
 - **A treadmill** — any belt treadmill. No Bluetooth or sensors required.
 - *(For training only)* a computer with a GPU to fine-tune the model.
@@ -133,10 +135,6 @@ python3 3-bluetooth-ftms/game_server.py --cnn-model ~/models/speed_cnn.onnx
   under different lighting record at different frame rates. Defining a clip as "1
   second of motion" instead of "8 frames" is what let the model trained on
   recordings stay accurate live.
-- **Bluetooth on combo radios.** On boards that share one radio for Wi-Fi and
-  Bluetooth, heavy Wi-Fi use can weaken the Bluetooth signal. Using a wired
-  network for the board — and checking the antenna — gave the most reliable
-  pairing.
 - **Build a probe.** When integrating with someone else's black-box app, a small
   tool that imitates that app and reports each step is worth its weight in gold.
 

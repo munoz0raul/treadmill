@@ -80,13 +80,28 @@ and prints PASS/FAIL at each step.
 python3 ftms_probe.py --name "AI Treadmill"
 ```
 
-If every step passes, a well-behaved FTMS game should pair.
+A healthy run looks like this (every step PASS, then a live speed stream):
 
-## Hardware note: Wi-Fi/BT coexistence and the antenna
+```
+[1] Scanning 8s for 'AI Treadmill' (or FTMS 0x1826)…
+[2] Connecting to XX:XX:XX:XX:XX:XX…
+[3] Discovering GATT services…
+  SERVICE 00001826-0000-1000-8000-00805f9b34fb   <-- FTMS
+  PASS  FTMS service present
+[4] Reading discovery characteristics a game checks…
+  PASS  Fitness Machine Feature 0x2ACC
+  PASS  Supported Speed Range 0x2AD4  (0.0–20.0 km/h, 0.1 step)
+[5] Subscribing to Treadmill Data 0x2ACD…
+  PASS  subscribed
+[6] Control Point handshake (Request Control → Start)…
+  PASS  Request Control ack (0x80 00 01)
+  PASS  Start ack (0x80 07 01)
+[7] Watching speed for 10s…
+      DATA 0000 2c01  flags=0x0000  speed=3.00 km/h
+      …
+=== SUMMARY ===
+If steps 3–6 all PASS, a well-behaved FTMS game should pair.
+```
 
-On boards with a combined Wi-Fi + Bluetooth radio (like the qca2066 used here),
-active Wi-Fi can degrade BLE advertising — in our testing, disabling Wi-Fi
-improved the advertised signal by roughly 11 dB. BLE transmit power on this chip
-is fixed in the radio firmware and can't be raised over HCI, so if a game still
-struggles to see the device, prefer a wired network for the board (freeing the
-Wi-Fi radio) and check the physical Bluetooth antenna connection.
+If every step passes, a well-behaved FTMS game should pair. Treadmill Data
+notifies at **≈ 2 Hz**.
