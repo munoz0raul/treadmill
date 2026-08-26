@@ -1,0 +1,36 @@
+# ── datasets, caches, models, media (large binaries — not versioned) ─────────
+dataset/
+recordings/
+*.npz
+*.npy
+models/
+*.onnx
+*.onnx.data
+*.tflite
+*.pt
+*.pth
+*.mp4
+*.jpg
+*.jpeg
+*.png
+
+# Documentation/article images ARE versioned (place them under docs/images/ or
+# a part's images/ folder). These negations override the media globs above.
+!docs/images/
+!docs/images/**
+!**/images/
+!**/images/**
+
+# ── python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+venv_*/
+*.log
+
+# ── os / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/

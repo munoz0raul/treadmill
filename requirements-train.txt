@@ -1,0 +1,8 @@
+# Part 1 — training (run on a GPU workstation, not the board).
+# Build the cache, fine-tune the mc3_18 model, and export ONNX.
+numpy
+opencv-python
+torch
+torchvision
+onnx
+onnxruntime
